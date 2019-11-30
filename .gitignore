@@ -1,0 +1,15 @@
+.DS_Store
+
+# data files
+MNIST_DATA
+
+fast_mnist/
+
+# model files
+models
+secret.zip
+
+# compiled python files
+*.pyc
+
+.idea/
