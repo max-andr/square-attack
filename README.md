@@ -23,7 +23,7 @@ white-box attacks in terms of success rate. Moreover, we show its utility by bre
 
 The code of the Square Attack can be found in `square_attack_linf(...)` and `square_attack_l2(...)` in `attack.py`.
 
-<p align="center"><img src="images/first_page_img_with_caption.png" width="475"></p>
+<p align="center"><img src="images/ezgif.com-gif-maker-50-conf-small.gif" width="425" /> <img src="images/ezgif.com-gif-maker-img-53-l2-2.gif" width="425" /> </p>
 
 
 ## About the paper
