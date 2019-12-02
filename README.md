@@ -21,8 +21,10 @@ various deep networks by a factor of at least 2 and up to 7 compared to the rece
 Meunier et al. while having a higher success rate. The Square Attack can even be competitive to gradient-based 
 white-box attacks in terms of success rate. Moreover, we show its utility by breaking a recently proposed defense based on randomization. 
 
+-----
+
 The code of the Square Attack can be found in `square_attack_linf(...)` and `square_attack_l2(...)` in `attack.py`.\
-Below we show the evolution of the images tested by the Linf (left) and L2 (right) versions of the Square Attack until misclassification is reached.
+Below we show the evolution of the images produced by the Linf (left) and L2 (right) versions of the Square Attack until misclassification is reached.
 
 <p align="center"><img src="images/ezgif.com-gif-maker-50-conf-small.gif" width="425" /> <img src="images/ezgif.com-gif-maker-img-53-l2-2.gif" width="425" /> </p>
 
