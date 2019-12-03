@@ -5,7 +5,7 @@
 
 **EPFL, University of Tübingen**
 
-**Paper:** [http://arxiv.org/abs/1906.03526](http://arxiv.org/abs/1906.03526)
+**Paper:** [https://arxiv.org/abs/1912.00049](https://arxiv.org/abs/1912.00049)
 
 \* denotes equal contribution
 
@@ -160,7 +160,7 @@ Please don't hesitate to open an issue or contact [Maksym Andriushchenko](https:
 @article{ACFH2019square,
   title={Square Attack: a query-efficient black-box adversarial attack via random search},
   author={Andriushchenko, Maksym and Croce, Francesco and Flammarion, Nicolas and Hein, Matthias},
-  conference={arXiv},
+  conference={arXiv preprint arXiv:1912.00049},
   year={2019}
 }
 ```
