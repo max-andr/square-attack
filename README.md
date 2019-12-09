@@ -34,7 +34,7 @@ The general algorithm of the attack is extremely simple and relies on the random
 accept it only if it helps to improve the loss:
 <p align="center"><img src="images/algorithm_rs.png" width="400"></p>
 
-The only thing we customize is the sampling distribution P (see the paper for details). The main ideas behind the choice
+The only thing we customize is the sampling distribution P (see the paper for details). The main idea behind the choice
 of the sampling distributions is that:
 - We start at the boundary of the feasible set with a good initialization that helps to improve the query efficiency (particularly for the Linf-attack).
 - Every iteration we stay at the boundary of the feasible set by changing squared-shaped regions of the image.
@@ -108,8 +108,11 @@ For example, for the standard ImageNet models, the correct L2 eps to specify is 
 
 
 ## Saved statistics
-In the folder `metrics`, we provide saved statistics of the attack on 4 models: Inception-v3, ResNet-50, VGG-16-BN, DenseNet-121.
-Here is a simple example how to load the metrics file, and print the statistics from the last iteration:
+In the folder `metrics`, we provide saved statistics of the attack on 4 models: Inception-v3, ResNet-50, VGG-16-BN, DenseNet-121.\
+Here are simple examples how to load the metrics file.
+
+### Linf attack
+To print the statistics from the last iteration:
 ```
 metrics = np.load('metrics/2019-11-10 15:57:14 model=pt_resnet dataset=imagenet n_ex=1000 eps=12.75 p=0.05 n_iter=10000.metrics.npy')
 iteration = np.argmax(metrics[:, -1])  # max time is the last available iteration
@@ -121,7 +124,13 @@ print('[iter {}] acc={:.2%} acc_corr={:.2%} avg#q={:.2f} avg#q_ae={:.2f} med#q_a
 Then one can also create different plots based on the data contained in `metrics`. For example, one can use `1 - acc_corr`
 to plot the success rate of the Square Attack at different number of queries.
 
-
+### L2 attack
+In this case we provide the number of queries necessary to achieve misclassification (`n_queries[i] = 0` means that the image `i` was initially misclassified, `n_queries[i] = 10001` indicates that the attack could not find an adversarial example for the image `i`).
+To load the metrics and compute the success rate of the Square Attack after `k` queries, you can run:
+```
+n_queries = np.load('metrics/square_l2_resnet50_queries.npy')['n_queries']
+success_rate = float(((n_queries > 0) * (n_queries <= k)).sum()) / (n_queries > 0).sum()
+```
 
 
 ## Models
