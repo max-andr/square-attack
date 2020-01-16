@@ -10,9 +10,15 @@
 \* denotes equal contribution
 
 
+## News
++ The Square Attack achieves the best results on [MadryLab's MNIST challenge](https://github.com/MadryLab/mnist_challenge),
+outperforming all white-box attacks!\
+In this case we used 50 random restarts of our attack, each with a query limit of 20000, and `p=0.8`.
++ The Square Attack breaks the defense proposed in "Bandlimiting Neural Networks Against Adversarial Attacks" ([https://github.com/robust-ml/robust-ml.github.io/issues/15](https://github.com/robust-ml/robust-ml.github.io/issues/15))!
+
 ## Abstract
 We propose the Square Attack, a new score-based black-box L2 and Linf adversarial attack that does not rely on 
-local gradient information and thus is not affected by gradient masking. 
+local gradient information and thus is not affected by gradient masking.  
 The Square Attack is based on a randomized search scheme where we select localized square-shaped updates at random positions 
 so that the Linf- or L2-norm of the perturbation is approximately equal to the maximal budget at each step. 
 Our method is algorithmically transparent, robust to the choice of hyperparameters, and is significantly more query efficient 
