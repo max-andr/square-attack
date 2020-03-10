@@ -2,6 +2,7 @@ import torch
 import tensorflow as tf
 import numpy as np
 import math
+import utils
 from torchvision import models as torch_models
 from torch.nn import DataParallel
 from madry_mnist.model import Model as madry_model_mnist
@@ -12,9 +13,6 @@ from post_avg.postAveragedModels import pa_resnet152_config1 as post_avg_imagene
 
 
 class Model:
-    """
-    Base class that is inherited either by TensorFlow or PyTorch models.
-    """
     def __init__(self, batch_size, gpu_memory):
         self.batch_size = batch_size
         self.gpu_memory = gpu_memory
@@ -22,14 +20,21 @@ class Model:
     def predict(self, x):
         raise NotImplementedError('use ModelTF or ModelPT')
 
-    def loss(self, y, logits, targeted=False):
+    def loss(self, y, logits, targeted=False, loss_type='margin_loss'):
         """ Implements the margin loss (difference between the correct and 2nd best class). """
-        preds_correct_class = (logits * y).sum(1, keepdims=True)
-        diff = preds_correct_class - logits  # difference between the correct class and all other classes
-        diff[y] = np.inf  # to exclude zeros coming from f_correct - f_correct
-        margin = diff.min(1, keepdims=True)
-        margin = margin * -1 if targeted else margin
-        return margin.flatten()
+        if loss_type == 'margin_loss':
+            preds_correct_class = (logits * y).sum(1, keepdims=True)
+            diff = preds_correct_class - logits  # difference between the correct class and all other classes
+            diff[y] = np.inf  # to exclude zeros coming from f_correct - f_correct
+            margin = diff.min(1, keepdims=True)
+            loss = margin * -1 if targeted else margin
+        elif loss_type == 'cross_entropy':
+            probs = utils.softmax(logits)
+            loss = -np.log(probs[y])
+            loss = loss * -1 if not targeted else loss
+        else:
+            raise ValueError('Wrong loss.')
+        return loss.flatten()
 
 
 class ModelTF(Model):

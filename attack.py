@@ -73,7 +73,7 @@ def meta_pseudo_gaussian_pert(s):
     return delta
 
 
-def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics_path):
+def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics_path, targeted, loss_type):
     """ The L2 square attack """
     np.random.seed(0)
 
@@ -100,16 +100,19 @@ def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics
     x_best = np.clip(x + delta_init / np.sqrt(np.sum(delta_init ** 2, axis=(1, 2, 3), keepdims=True)) * eps, 0, 1)
 
     logits = model.predict(x_best)
-    margin_min = model.loss(y, logits)
+    loss_min = model.loss(y, logits, targeted, loss_type=loss_type)
+    margin_min = model.loss(y, logits, targeted, loss_type='margin_loss')
     n_queries = np.ones(x.shape[0])  # ones because we have already used 1 query
 
     time_start = time.time()
+    s_init = int(np.sqrt(p_init * n_features / c))
     metrics = np.zeros([n_iters, 7])
     for i_iter in range(n_iters):
         idx_to_fool = (margin_min > 0.0)
 
         x_curr, x_best_curr = x[idx_to_fool], x_best[idx_to_fool]
         y_curr, margin_min_curr = y[idx_to_fool], margin_min[idx_to_fool]
+        loss_min_curr = loss_min[idx_to_fool]
         delta_curr = x_best_curr - x_curr
 
         p = p_selection(p_init, i_iter, n_iters)
@@ -130,6 +133,9 @@ def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics
         center_w_2 = np.random.randint(0, w - s2)
         new_deltas_mask_2 = np.zeros(x_curr.shape)
         new_deltas_mask_2[:, :, center_h_2:center_h_2 + s2, center_w_2:center_w_2 + s2] = 1.0
+        norms_window_2 = np.sqrt(
+            np.sum(delta_curr[:, :, center_h_2:center_h_2 + s2, center_w_2:center_w_2 + s2] ** 2, axis=(-2, -1),
+                   keepdims=True))
 
         ### compute total norm available
         curr_norms_window = np.sqrt(
@@ -145,19 +151,23 @@ def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics
         old_deltas = delta_curr[:, :, center_h:center_h + s, center_w:center_w + s] / (1e-10 + curr_norms_window)
         new_deltas += old_deltas
         new_deltas = new_deltas / np.sqrt(np.sum(new_deltas ** 2, axis=(2, 3), keepdims=True)) * (
-                np.maximum(eps ** 2 - curr_norms_image ** 2, 0) / c + norms_windows ** 2) ** 0.5
+            np.maximum(eps ** 2 - curr_norms_image ** 2, 0) / c + norms_windows ** 2) ** 0.5
         delta_curr[:, :, center_h_2:center_h_2 + s2, center_w_2:center_w_2 + s2] = 0.0  # set window_2 to 0
         delta_curr[:, :, center_h:center_h + s, center_w:center_w + s] = new_deltas + 0  # update window_1
 
+        hps_str = 's={}->{}'.format(s_init, s)
         x_new = x_curr + delta_curr / np.sqrt(np.sum(delta_curr ** 2, axis=(1, 2, 3), keepdims=True)) * eps
         x_new = np.clip(x_new, min_val, max_val)
         curr_norms_image = np.sqrt(np.sum((x_new - x_curr) ** 2, axis=(1, 2, 3), keepdims=True))
 
         logits = model.predict(x_new)
-        margin = model.loss(y_curr, logits)
+        loss = model.loss(y_curr, logits, targeted, loss_type=loss_type)
+        margin = model.loss(y_curr, logits, targeted, loss_type='margin_loss')
 
-        idx_improved = margin < margin_min_curr
+        idx_improved = loss < loss_min_curr
+        loss_min[idx_to_fool] = idx_improved * loss + ~idx_improved * loss_min_curr
         margin_min[idx_to_fool] = idx_improved * margin + ~idx_improved * margin_min_curr
+
         idx_improved = np.reshape(idx_improved, [-1, *[1] * len(x.shape[:-1])])
         x_best[idx_to_fool] = idx_improved * x_new + ~idx_improved * x_best_curr
         n_queries[idx_to_fool] += 1
@@ -169,9 +179,9 @@ def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics
 
         time_total = time.time() - time_start
         log.print(
-            '{}: acc={:.2%} acc_corr={:.2%} avg#q_ae={:.1f} med#q_ae={:.1f}, n_ex={}, {:.0f}s, loss={:.3f}, max_pert={:.1f}, impr={:.0f}'.
-            format(i_iter + 1, acc, acc_corr, mean_nq_ae, median_nq_ae, x.shape[0], time_total,
-                   np.mean(margin_min), np.amax(curr_norms_image), np.sum(idx_improved)))
+            '{}: acc={:.2%} acc_corr={:.2%} avg#q_ae={:.1f} med#q_ae={:.1f} {}, n_ex={}, {:.0f}s, loss={:.3f}, max_pert={:.1f}, impr={:.0f}'.
+                format(i_iter + 1, acc, acc_corr, mean_nq_ae, median_nq_ae, hps_str, x.shape[0], time_total,
+                       np.mean(margin_min), np.amax(curr_norms_image), np.sum(idx_improved)))
         metrics[i_iter] = [acc, acc_corr, mean_nq, mean_nq_ae, median_nq, margin_min.mean(), time_total]
         if (i_iter <= 500 and i_iter % 500) or (i_iter > 100 and i_iter % 500) or i_iter + 1 == n_iters or acc == 0:
             np.save(metrics_path, metrics)
@@ -186,7 +196,7 @@ def square_attack_l2(model, x, y, corr_classified, eps, n_iters, p_init, metrics
     return n_queries, x_best
 
 
-def square_attack_linf(model, x, y, corr_classified, eps, n_iters, p_init, metrics_path):
+def square_attack_linf(model, x, y, corr_classified, eps, n_iters, p_init, metrics_path, targeted, loss_type):
     """ The Linf square attack """
     np.random.seed(0)  # important to leave it here as well
     min_val, max_val = 0, 1 if x.max() <= 1 else 255
@@ -195,19 +205,21 @@ def square_attack_linf(model, x, y, corr_classified, eps, n_iters, p_init, metri
     n_ex_total = x.shape[0]
     x, y = x[corr_classified], y[corr_classified]
 
-    # Vertical stripes initialization
-    x_best = np.clip(x + np.random.choice([-eps, eps], size=[x.shape[0], c, 1, w]), min_val, max_val)
+    # [c, 1, w], i.e. vertical stripes work best for untargeted attacks
+    init_delta = np.random.choice([-eps, eps], size=[x.shape[0], c, 1, w])
+    x_best = np.clip(x + init_delta, min_val, max_val)
 
     logits = model.predict(x_best)
-    margin_min = model.loss(y, logits)
+    loss_min = model.loss(y, logits, targeted, loss_type=loss_type)
+    margin_min = model.loss(y, logits, targeted, loss_type='margin_loss')
     n_queries = np.ones(x.shape[0])  # ones because we have already used 1 query
 
     time_start = time.time()
     metrics = np.zeros([n_iters, 7])
     for i_iter in range(n_iters - 1):
         idx_to_fool = margin_min > 0
-        x_curr, x_best_curr = x[idx_to_fool], x_best[idx_to_fool]
-        y_curr, margin_min_curr = y[idx_to_fool], margin_min[idx_to_fool]
+        x_curr, x_best_curr, y_curr = x[idx_to_fool], x_best[idx_to_fool], y[idx_to_fool]
+        loss_min_curr, margin_min_curr = loss_min[idx_to_fool], margin_min[idx_to_fool]
         deltas = x_best_curr - x_curr
 
         p = p_selection(p_init, i_iter, n_iters)
@@ -221,27 +233,28 @@ def square_attack_linf(model, x, y, corr_classified, eps, n_iters, p_init, metri
             x_best_curr_window = x_best_curr[i_img, :, center_h:center_h+s, center_w:center_w+s]
             # prevent trying out a delta if it doesn't change x_curr (e.g. an overlapping patch)
             while np.sum(np.abs(np.clip(x_curr_window + deltas[i_img, :, center_h:center_h+s, center_w:center_w+s], min_val, max_val) - x_best_curr_window) < 10**-7) == c*s*s:
-                # the updates are the same across all elements in the square
                 deltas[i_img, :, center_h:center_h+s, center_w:center_w+s] = np.random.choice([-eps, eps], size=[c, 1, 1])
 
         x_new = np.clip(x_curr + deltas, min_val, max_val)
 
         logits = model.predict(x_new)
-        margin = model.loss(y_curr, logits)
+        loss = model.loss(y_curr, logits, targeted, loss_type=loss_type)
+        margin = model.loss(y_curr, logits, targeted, loss_type='margin_loss')
 
-        idx_improved = margin < margin_min_curr
+        idx_improved = loss < loss_min_curr
+        loss_min[idx_to_fool] = idx_improved * loss + ~idx_improved * loss_min_curr
         margin_min[idx_to_fool] = idx_improved * margin + ~idx_improved * margin_min_curr
         idx_improved = np.reshape(idx_improved, [-1, *[1]*len(x.shape[:-1])])
         x_best[idx_to_fool] = idx_improved * x_new + ~idx_improved * x_best_curr
         n_queries[idx_to_fool] += 1
 
-        # different metrics to keep track of
         acc = (margin_min > 0.0).sum() / n_ex_total
         acc_corr = (margin_min > 0.0).mean()
         mean_nq, mean_nq_ae, median_nq_ae = np.mean(n_queries), np.mean(n_queries[margin_min <= 0]), np.median(n_queries[margin_min <= 0])
+        avg_margin_min = np.mean(margin_min)
         time_total = time.time() - time_start
-        log.print('{}: acc={:.2%} acc_corr={:.2%} avg#q={:.2f} avg#q_ae={:.2f} med#q={:.1f} (n_ex={}, eps={:.3f}, {:.2f}s)'.
-            format(i_iter+1, acc, acc_corr, mean_nq, mean_nq_ae, median_nq_ae, x.shape[0], eps, time_total))
+        log.print('{}: acc={:.2%} acc_corr={:.2%} avg#q_ae={:.2f} med#q={:.1f}, avg_margin={:.2f} (n_ex={}, eps={:.3f}, {:.2f}s)'.
+            format(i_iter+1, acc, acc_corr, mean_nq_ae, median_nq_ae, avg_margin_min, x.shape[0], eps, time_total))
 
         metrics[i_iter] = [acc, acc_corr, mean_nq, mean_nq_ae, median_nq_ae, margin_min.mean(), time_total]
         if (i_iter <= 500 and i_iter % 20 == 0) or (i_iter > 100 and i_iter % 50 == 0) or i_iter + 1 == n_iters or acc == 0:
@@ -264,7 +277,9 @@ if __name__ == '__main__':
                              'Linf standard: 0.05, L2 standard: 0.1. But robust models require higher p.')
     parser.add_argument('--eps', type=float, default=0.05, help='Radius of the Lp ball.')
     parser.add_argument('--n_iter', type=int, default=10000)
+    parser.add_argument('--targeted', action='store_true', help='Targeted or untargeted attack.')
     args = parser.parse_args()
+    args.loss = 'margin_loss' if not args.targeted else 'cross_entropy'
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     dataset = 'mnist' if 'mnist' in args.model else 'cifar10' if 'cifar10' in args.model else 'imagenet'
@@ -273,7 +288,6 @@ if __name__ == '__main__':
         timestamp, args.model, dataset, args.attack, args.n_ex, args.eps, args.p, args.n_iter)
     args.eps = args.eps / 255.0 if dataset == 'imagenet' else args.eps  # for mnist and cifar10 we leave as it is
     batch_size = data.bs_dict[dataset]
-    step_size_pgd = {'mnist': 0.01, 'cifar10': 0.8, 'imagenet': 0.003}[dataset]
     model_type = 'pt' if 'pt_' in args.model else 'tf'
     n_cls = 1000 if dataset == 'imagenet' else 10
     gpu_memory = 0.5 if dataset == 'mnist' and args.n_ex > 1000 else 0.15 if dataset == 'mnist' else 0.99
@@ -303,8 +317,9 @@ if __name__ == '__main__':
     log.print('Clean accuracy: {:.2%}'.format(np.mean(corr_classified)))
 
     square_attack = square_attack_linf if args.attack == 'square_linf' else square_attack_l2
-    y_target_onehot = utils.dense_to_onehot(y_test, n_cls=n_cls)
+    y_target = utils.random_classes_except_current(y_test, n_cls) if args.targeted else y_test
+    y_target_onehot = utils.dense_to_onehot(y_target, n_cls=n_cls)
     # Note: we count the queries only across correctly classified images
     n_queries, x_adv = square_attack(model, x_test, y_target_onehot, corr_classified, args.eps, args.n_iter,
-                                     args.p, metrics_path)
+                                     args.p, metrics_path, args.targeted, args.loss)
 

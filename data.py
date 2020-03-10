@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 
 def load_mnist(n_ex):
