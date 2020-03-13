@@ -101,8 +101,9 @@ to the validation set (see `IMAGENET_PATH` in `data.py`) and then run:
 
 Note that eps=12.75 is then divided by 255, so in the end it is equal to 0.05.
 
-For targeted attacks use additionally the flag `--targeted`, and specify more iterations `--n_iter=100000` since
-it usually takes more iteration to achieve a misclassification to some particular (randomly chosen) class.
+For performing targeted attacks, one should use additionally the flag `--targeted`, use a lower `p`, and specify more 
+iterations `--n_iter=100000` since it usually takes more iteration to achieve a misclassification to some particular, 
+randomly chosen class.
 
 The rest of the models have to downloaded first (see the instructions below), and then can be evaluated in the following way:
 
