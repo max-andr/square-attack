@@ -11,6 +11,9 @@
 
 
 ## News
++ [Mar 2020] Our attack is now part of [AutoAttack](https://github.com/fra31/auto-attack), an ensemble of attacks used
+for automatic (i.e., no hyperparameter tuning needed) robustness evaluation. Table 2 in the [AutoAttack paper](https://arxiv.org/abs/2003.01690) 
+shows that at least on 6 models our **black-box** attack outperforms gradient-based methods. Always useful to have a black-box attack to prevent inaccurate robustness claims!
 + [Mar 2020] We also achieve the best results on [TRADES MNIST benchmark](https://github.com/yaodongyu/TRADES)!
 + [Jan 2020] The Square Attack achieves the best results on [MadryLab's MNIST challenge](https://github.com/MadryLab/mnist_challenge),
 outperforming all white-box attacks! In this case we used 50 random restarts of our attack, each with a query limit of 20000.
