@@ -190,10 +190,10 @@ Please don't hesitate to open an issue or contact [Maksym Andriushchenko](https:
 
 ## Citation
 ```
-@article{ACFH2019square,
+@article{ACFH2020square,
   title={Square Attack: a query-efficient black-box adversarial attack via random search},
   author={Andriushchenko, Maksym and Croce, Francesco and Flammarion, Nicolas and Hein, Matthias},
-  conference={arXiv preprint arXiv:1912.00049},
-  year={2019}
+  conference={ECCV},
+  year={2020}
 }
 ```
