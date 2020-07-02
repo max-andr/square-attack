@@ -1,5 +1,5 @@
 # Square Attack: a query-efficient black-box adversarial attack via random search
-
+**ECCV 2020**
 
 **Maksym Andriushchenko\*, Francesco Croce\*, Nicolas Flammarion, Matthias Hein**
 
@@ -11,6 +11,7 @@
 
 
 ## News
++ [Jul 2020] The paper is accepted at **ECCV 2020**! Please stop by our virtual poster for the latest insights in black-box adversarial attacks (also check out our recent preprint [Sparse-RS paper](https://arxiv.org/abs/2006.12834) where we use random search for sparse attacks).
 + [Mar 2020] Our attack is now part of [AutoAttack](https://github.com/fra31/auto-attack), an ensemble of attacks used
 for automatic (i.e., no hyperparameter tuning needed) robustness evaluation. Table 2 in the [AutoAttack paper](https://arxiv.org/abs/2003.01690) 
 shows that at least on 6 models our **black-box** attack outperforms gradient-based methods. Always useful to have a black-box attack to prevent inaccurate robustness claims!
